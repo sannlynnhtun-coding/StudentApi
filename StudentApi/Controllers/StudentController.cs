@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using StudentApi.Dtos;
+using Microsoft.AspNetCore.Mvc;
 using StudentApi.Database.AppDbContextModels;
 
 namespace StudentApi.Controllers
@@ -19,33 +20,49 @@ namespace StudentApi.Controllers
         {
             var lst = _db.TblStudents
                 .Where(x => x.IsDelete == false)
+                .Select(x => new StudentDto
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    FatherName = x.FatherName,
+                    CreatedBy = x.CreatedBy,
+                    CreatedDate = x.CreatedDate,
+                    ModifiedBy = x.ModifiedBy,
+                    ModifiedDate = x.ModifiedDate,
+                    IsDelete = x.IsDelete
+                })
                 .ToList();
+
             return Ok(lst);
         }
 
         [HttpPost]
-        public IActionResult CreateStudent([FromBody] TblStudent request)
+        public IActionResult CreateStudent([FromBody] StudentCreateRequestDto request)
         {
             var student = new TblStudent
             {
-                Code = request.Code,
+                Code = Guid.NewGuid().ToString("N").Substring(0, 8), // optional: auto-generate Code
                 Name = request.Name,
                 FatherName = request.FatherName,
                 CreatedBy = "System",
                 CreatedDate = DateTime.Now,
                 IsDelete = false
             };
+
             _db.TblStudents.Add(student);
             int result = _db.SaveChanges();
-            return Ok(new
+
+            var response = new StudentCreateResponseDto
             {
                 IsSuccess = result > 0,
                 Message = result > 0 ? "Student created successfully." : "Failed to create student."
-            });
+            };
+
+            return Ok(response);
         }
 
         [HttpPatch("{id}")]
-        public IActionResult UpdateStudent(int id, [FromBody] TblStudent request)
+        public IActionResult UpdateStudent(int id, [FromBody] StudentUpdateRequestDto request)
         {
             var student = _db.TblStudents.FirstOrDefault(x => x.Id == id && x.IsDelete == false);
             if (student is null)
@@ -53,14 +70,11 @@ namespace StudentApi.Controllers
                 return NotFound();
             }
 
-            if (!string.IsNullOrEmpty(request.Code))
-            {
-                student.Code = request.Code;
-            }
             if (!string.IsNullOrEmpty(request.Name))
             {
                 student.Name = request.Name;
             }
+
             if (!string.IsNullOrEmpty(request.FatherName))
             {
                 student.FatherName = request.FatherName;
@@ -70,11 +84,14 @@ namespace StudentApi.Controllers
             student.ModifiedDate = DateTime.Now;
 
             int result = _db.SaveChanges();
-            return Ok(new
+
+            var response = new StudentCreateResponseDto
             {
                 IsSuccess = result > 0,
                 Message = result > 0 ? "Student updated successfully." : "Failed to update student."
-            });
+            };
+
+            return Ok(response);
         }
 
         [HttpDelete("{id}")]
@@ -88,11 +105,14 @@ namespace StudentApi.Controllers
 
             student.IsDelete = true;
             int result = _db.SaveChanges();
-            return Ok(new
+
+            var response = new StudentCreateResponseDto
             {
                 IsSuccess = result > 0,
                 Message = result > 0 ? "Student deleted successfully." : "Failed to delete student."
-            });
+            };
+
+            return Ok(response);
         }
     }
 }
